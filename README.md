@@ -11,6 +11,7 @@ ZK Payroll Contracts enable companies to process payroll on-chain while keeping 
 - **Private Salary Commitments** — Salary amounts stored as ZK commitments
 - **Proof-Based Payments** — Verify payments without exposing values
 - **Employee Identifier Normalization** — Canonical trimming, ASCII uppercasing, and validation for safe HR reference lookups and collision prevention
+- **Commitment Rotation Controls** — Approved (locked) salary commitments can be rotated in place after a payroll settles, without invalidating the settled record and without an unlock window
 - **Batch Payroll** — Process multiple employees in single transaction
 - **Period Freeze Guard** — Finalized payroll periods are locked against further edits, with an admin-controlled unfreeze path for authorized corrections
 - **Run Expiration** — Prepared-but-unfinalized payroll runs can expire after a configurable window, releasing reserved funds and stopping stale submissions
@@ -57,6 +58,10 @@ ZK Payroll Contracts enable companies to process payroll on-chain while keeping 
 > **Run lifecycle:** prepared-but-unfinalized runs can expire (#474) — see
 > [docs/run-expiration.md](docs/run-expiration.md) for the expiry policy, the
 > permissionless expiry flow, and SDK guidance.
+>
+> **Commitment lifecycle:** an approved or settled commitment can be rotated
+> with `rotate_approved_commitment` without dropping its lock (#520) — see
+> [contracts/README.md](contracts/README.md#commitment-rotation-controls-salary_commitment--issue-520).
 
 ## Prerequisites
 

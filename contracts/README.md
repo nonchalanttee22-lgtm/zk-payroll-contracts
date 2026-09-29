@@ -174,6 +174,79 @@ are not recoverable from environment configuration or emitted event payloads.
 
 ---
 
+## Commitment rotation controls (`salary_commitment` — issue #520)
+
+A payroll run locks each employee's commitment when it executes, so the value a
+settled payroll record was paid against cannot be silently changed afterwards.
+That protection also means a routine compensation change (raise, bonus,
+correction) after a settlement used to have no supported path: the admin had to
+`unlock_commitment_updates` first, leaving the approved binding unprotected
+between two separate transactions.
+
+`rotate_approved_commitment` rotates a locked commitment in a single authorized
+call and **keeps the lock in place**.
+
+### Entry-points
+
+| Entry-point | Commitment state | Lock after call | Use case |
+|-------------|------------------|-----------------|----------|
+| `rotate_commitment` | unlocked | unchanged (stays unlocked) | Pre-approval compensation change |
+| `rotate_approved_commitment` | locked (approved / settled) | **retained** | Post-settlement compensation change |
+| `can_rotate_approved_commitment` | — | — | Read-only: would the rotation succeed now? |
+
+### Why the settled record stays valid
+
+- The outgoing commitment value is archived into the employee's
+  `CommitmentHistory`, so it remains queryable via `get_commitment_history`.
+- Retired values stay permanently reserved (issue #242): a value that has ever
+  been bound to an employee can never be re-bound, so a settled payroll record
+  always resolves to exactly one commitment revision.
+- `version` keeps increasing monotonically across both rotations and updates,
+  so audit tooling can order commitment revisions.
+
+### Invoking it
+
+```bash
+stellar contract invoke \
+  --id "$COMMITMENT_ID" \
+  --source "$SOURCE" \
+  --network "$NETWORK" \
+  -- rotate_approved_commitment \
+  --employee "$EMPLOYEE_ADDR" \
+  --new_commitment "$NEW_COMMITMENT_HEX"
+```
+
+### Error reference
+
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `"Commitment is not locked: use rotate_commitment to rotate an unlocked commitment"` | No approved/settled payroll run is bound to this commitment | Use `rotate_commitment` |
+| `"Commitment not found"` | The employee has no stored commitment | `store_commitment` first |
+| `"New commitment must differ from the current commitment"` | No-op rotation (the new value equals the active one) | Generate a fresh commitment off-chain |
+| `"Commitment already in use: ..."` | The new value is already bound to an employee, active or archived | Generate a fresh commitment; retired values are never released |
+| Host `authorized` failure | Not signed by the commitment admin | Sign with the admin from `get_commitment_admin` |
+
+All error messages are privacy-safe: they never echo commitment values, salary
+amounts, blinding factors, or employee details beyond the address the admin
+already supplied.
+
+### Manual QA (success path and edge case)
+
+1. **Success path** — store a commitment, `lock_commitment_updates`, then
+   `rotate_approved_commitment`: `get_commitment` returns the new value with an
+   incremented `version` and `revoked = false`, `is_commitment_locked` is still
+   `true`, and `get_commitment_history` contains the retired value.
+2. **Edge case** — call `rotate_approved_commitment` with the *current* value:
+   the call fails with `"New commitment must differ from the current
+   commitment"` and the stored commitment, version, lock, and history are all
+   unchanged.
+
+```bash
+cargo test -p salary_commitment rotate_approved_commitment
+```
+
+---
+
 ## Verification checklist (manual QA)
 
 Use these steps to confirm your local setup without running the full workspace

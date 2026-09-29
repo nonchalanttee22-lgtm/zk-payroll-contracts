@@ -275,6 +275,30 @@ data       (BytesN<32> old_commitment, BytesN<32> new_commitment)
 
 ---
 
+### `ApprovedCommitmentRotated` ? `salary_commitment`
+
+Emitted when a **locked** (approved or already settled) commitment is rotated
+via `rotate_approved_commitment` (issue #520). The lock is retained, so the
+payroll record that caused the lock stays bound to the retired commitment
+value, which also remains available in `get_commitment_history`.
+
+```
+topics[0]  Symbol("ApprovedCommitmentRotated")
+topics[1]  Address employee
+data       (BytesN<32> old_commitment, BytesN<32> new_commitment)
+```
+
+| Severity | Consumers |
+|----------|-----------|
+| `MEDIUM` (authoritative invalidation signal for future runs only) | Indexers, salary-history rebuilders, audit trails |
+
+> ?? Unlike `CommitmentRotated`, this event does **not** require a preceding
+> `CommitmentUnlocked`: there is no window in which the approved binding is
+> unprotected. It is still preceded by `CommitmentUpdated` in the same
+> transaction (the new value becomes the active commitment).
+
+---
+
 ### `CommitmentLocked` ? `salary_commitment`
 
 Emitted when an employee's commitment is locked to prevent silent updates
@@ -904,6 +928,7 @@ Quick-reference: which consumer types should subscribe to which domain.
 | `CommitmentUpdated` | `salary_commitment` | `(employee)` | `(commitment,)` |
 | `CommitmentUpdated` | `payroll_registry` | `(company_id, employee)` | `(new_commitment,)` |
 | `CommitmentRotated` | `salary_commitment` | `(employee)` | `(old, new)` |
+| `ApprovedCommitmentRotated` | `salary_commitment` | `(employee)` | `(old, new)` |
 | `ReferenceIdSet` | `salary_commitment` | `(employee)` | `(reference_id,)` |
 | `AdminRotationProposed` | `salary_commitment` | `(current_admin)` | `(new_admin,)` |
 | `CompanyRegistered` | `payroll_registry` | `(company_id)` | `(admin, treasury)` |

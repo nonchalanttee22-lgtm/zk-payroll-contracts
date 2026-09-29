@@ -453,6 +453,21 @@ pub fn emit_commitment_rotated(
     );
 }
 
+/// Emitted when a locked (approved or already settled) commitment is rotated
+/// with `rotate_approved_commitment` (issue #520). The lock is retained, so
+/// payroll records produced against the retired value stay bound to it.
+pub fn emit_commitment_approved_rotated(
+    e: &Env,
+    employee: Address,
+    old_commitment: BytesN<32>,
+    new_commitment: BytesN<32>,
+) {
+    e.events().publish(
+        (Symbol::new(e, "ApprovedCommitmentRotated"), employee),
+        (old_commitment, new_commitment),
+    );
+}
+
 /// Emitted when an employee's commitment is locked (no updates allowed).
 pub fn emit_commitment_locked(e: &Env, employee: Address) {
     e.events()

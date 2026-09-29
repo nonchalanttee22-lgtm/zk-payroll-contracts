@@ -206,7 +206,8 @@ When salary changes, use one of:
 | Entrypoint | When to use |
 |------------|-------------|
 | `SalaryCommitmentContract::update_commitment` | Routine salary change; archives old version |
-| `SalaryCommitmentContract::rotate_commitment` | Security rotation; marks old commitment as revoked |
+| `SalaryCommitmentContract::rotate_commitment` | Security rotation of an unlocked commitment; archives the old value |
+| `SalaryCommitmentContract::rotate_approved_commitment` | Rotation of a commitment locked by an approved/settled payroll run; keeps the lock so the settled record stays valid (#520) |
 | `PayrollRegistry::update_commitment` | Convenience wrapper that updates both registry and commitment contracts |
 
 ---
